@@ -518,8 +518,7 @@
             
             const nameInput = document.getElementById('player-name').value;
             state.name = nameInput.trim() || 'Bé Ngoan';
-            document.getElementById('display-name').innerText = state.name.substring(0, 10);
-            document.getElementById('player-info').innerHTML = `${state.avatar} ${state.name}`;
+            document.getElementById('player-info').innerHTML = `${state.avatar} ${state.name.substring(0, 12)}`;
             
             state.score = 0;
             state.correct = 0;
