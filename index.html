@@ -281,9 +281,39 @@
         .badge {
             background: #FFF9C4; color: #F57F17; border-radius: 10px; padding: 5px 10px; display: inline-block; font-size: 1.2rem; margin-bottom: 5px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
+
+        /* Nút Tắt/Bật Nhạc Nền */
+        .bgm-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+            transition: 0.2s;
+            user-select: none;
+        }
+        .bgm-btn:active {
+            transform: scale(0.9);
+        }
     </style>
 </head>
 <body>
+
+    <!-- Nhạc nền (Hiện đang dùng link tạm, bạn nên tải 1 file nhạc mp3 đổi tên thành bgm.mp3 để chung với index.html, rồi đổi src="bgm.mp3") -->
+    <audio id="bg-music" loop>
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+    </audio>
+    <div class="bgm-btn" id="bgm-btn" onclick="toggleBGM()" title="Bật/Tắt Nhạc Nền">🔊</div>
 
     <!-- Popup Message -->
     <div id="msg-overlay" class="message-overlay">
@@ -460,6 +490,40 @@
             }
         }
 
+        // Logic điều khiển nhạc nền
+        let bgMusicStarted = false;
+        let isMuted = false;
+
+        function toggleBGM() {
+            playSound('click');
+            const bgMusic = document.getElementById('bg-music');
+            const btn = document.getElementById('bgm-btn');
+            isMuted = !isMuted;
+            if (isMuted) {
+                bgMusic.pause();
+                btn.innerText = '🔇';
+            } else {
+                bgMusic.play();
+                btn.innerText = '🔊';
+            }
+        }
+
+        // Bắt sự kiện click chung để kích hoạt Audio (Fix luật Autoplay của trình duyệt)
+        document.addEventListener('click', (e) => {
+            // Khởi chạy nhạc nền ở lần click đầu tiên
+            if (!bgMusicStarted && !isMuted) {
+                const bgMusic = document.getElementById('bg-music');
+                bgMusic.volume = 0.2; // Nhạc nền bé lại để nghe rõ âm tiếng
+                bgMusic.play().catch(err => console.log("Chưa thể tự động phát nhạc:", err));
+                bgMusicStarted = true;
+            }
+
+            if (e.target.tagName.toLowerCase() === 'button' || e.target.classList.contains('avatar')) {
+                if(e.target.id !== 'bgm-btn') {
+                     playSound('click');
+                }
+            }
+        });
 
         // ==========================================
         // CẤU HÌNH GAME & DỮ LIỆU LOCALSTORAGE
