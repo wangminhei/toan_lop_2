@@ -4,13 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bé Học Toán Lớp 2</title>
+    <!-- Firebase SDK (v8 compat) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
     <style>
         :root {
-            --bg-color: #E1F5FE; /* Xanh nhạt thư giãn */
-            --primary: #FF9800; /* Cam tươi */
-            --secondary: #4CAF50; /* Xanh lá */
-            --accent: #9C27B0; /* Tím nhạt */
-            --danger: #FF5252; /* Đỏ */
+            --bg-color: #E1F5FE; 
+            --primary: #FF9800; 
+            --secondary: #4CAF50; 
+            --accent: #9C27B0; 
+            --danger: #FF5252; 
             --text: #333;
         }
         body { 
@@ -49,7 +53,7 @@
             text-align: center; 
             width: 80%; 
             max-width: 300px; 
-            margin: 15px 0;
+            margin: 10px 0;
             outline: none;
         }
         input:focus {
@@ -58,7 +62,7 @@
         .avatars { 
             display: flex; 
             gap: 15px; 
-            margin: 20px 0; 
+            margin: 15px 0; 
             justify-content: center; 
             flex-wrap: wrap; 
         }
@@ -87,7 +91,6 @@
             cursor: pointer; 
             box-shadow: 0 6px 0 #E65100; 
             transition: transform 0.1s, box-shadow 0.1s; 
-            margin-top: 20px; 
             font-family: inherit; 
             font-weight: bold; 
         }
@@ -167,7 +170,6 @@
             text-align: center;
             font-weight: bold;
         }
-        /* Confetti Effect */
         .confetti { 
             position: fixed; 
             width: 12px; 
@@ -213,6 +215,46 @@
             border-radius: 15px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
+
+        /* Tùy chỉnh độ khó */
+        .diff-container { margin: 15px 0; }
+        .diff-btn {
+            font-size: 1.2rem;
+            padding: 10px 20px;
+            margin: 0 5px;
+            background-color: #ddd;
+            color: #555;
+            box-shadow: 0 4px 0 #bbb;
+        }
+        .diff-btn.selected {
+            background-color: var(--accent);
+            color: white;
+            box-shadow: 0 4px 0 #7B1FA2;
+        }
+
+        /* Leaderboard box */
+        .scoreboard {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+            margin: 20px auto;
+            max-height: 50vh;
+            overflow-y: auto;
+            text-align: left;
+        }
+        .score-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 2px dashed #eee;
+            font-size: 1.5rem;
+        }
+        .score-item:last-child { border-bottom: none; }
+        .badge {
+            background: #FFF9C4; color: #F57F17; border-radius: 10px; padding: 5px 10px; display: inline-block; font-size: 1.2rem; margin-bottom: 10px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
@@ -225,8 +267,11 @@
     <!-- Màn Hình Bắt Đầu -->
     <div id="start-screen" class="screen active">
         <h1>Toán Vui Lớp 2 🎈</h1>
-        <p style="font-size: 1.2rem; color: #666; margin-top:0;">Cùng làm toán để nhận sao nhé!</p>
         
+        <div class="badge" id="player-achievements">
+            ⭐ Kho Sao: 0 &nbsp;|&nbsp; 🏆 Kỷ Lục: 0
+        </div>
+
         <input type="text" id="player-name" placeholder="Tên của bé là gì?" autocomplete="off" />
         
         <h3 style="color: var(--secondary); margin-bottom: 5px;">Chọn bạn đồng hành:</h3>
@@ -238,8 +283,16 @@
             <span class="avatar">🐼</span>
             <span class="avatar">🦖</span>
         </div>
+
+        <h3 style="color: var(--accent); margin-bottom: 5px;">Chọn Độ Khó:</h3>
+        <div class="diff-container" id="difficulty-options">
+            <button class="diff-btn" data-diff="easy">Dễ (Đến 20)</button>
+            <button class="diff-btn selected" data-diff="medium">Vừa (Đến 100)</button>
+            <button class="diff-btn" data-diff="hard">Khó (Đến 1000)</button>
+        </div>
         
-        <button onclick="startGame()">Bắt Đầu Học 🚀</button>
+        <button onclick="startGame()" style="margin-top: 10px;">Bắt Đầu Học 🚀</button>
+        <button onclick="showLeaderboard()" style="margin-top: 15px; background: #03A9F4; box-shadow: 0 6px 0 #0288D1; font-size: 1.2rem; padding: 10px 20px;">Xếp Hạng 🥇</button>
     </div>
 
     <!-- Màn Hình Chơi -->
@@ -252,11 +305,8 @@
         
         <div class="question-box">
             <div class="timer-bar"><div id="timer-fill" class="timer-fill"></div></div>
-            <div class="question" id="question-text">25 + 14 = ?</div>
-            
-            <div class="options" id="options-container">
-                <!-- Đáp án sẽ được sinh ra ở đây -->
-            </div>
+            <div class="question" id="question-text"></div>
+            <div class="options" id="options-container"></div>
         </div>
     </div>
 
@@ -269,8 +319,17 @@
         
         <div style="display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; justify-content: center;">
             <button onclick="resetGame()" style="background: var(--secondary); box-shadow: 0 6px 0 #2E7D32;">Làm Lại 🔄</button>
-            <button onclick="goHome()" style="background: var(--accent); box-shadow: 0 6px 0 #7B1FA2;">Về Đầu Trang 🏠</button>
+            <button onclick="goHome()" style="background: var(--accent); box-shadow: 0 6px 0 #7B1FA2;">Về Trang Chủ 🏠</button>
         </div>
+    </div>
+
+    <!-- Màn Hình Bảng Xếp Hạng -->
+    <div id="leaderboard-screen" class="screen">
+        <h1>Bảng Vàng 🥇</h1>
+        <div class="scoreboard" id="leaderboard-list">
+            <p>Đang tải dữ liệu...</p>
+        </div>
+        <button onclick="goHome()">Trở Về 🔙</button>
     </div>
 
     <!-- Thông tin Tác Giả -->
@@ -279,12 +338,89 @@
     </div>
 
     <script>
+        // ==========================================
+        // CẤU HÌNH BẢNG XẾP HẠNG FIREBASE
+        // Hướng dẫn: 
+        // 1. Vào trang https://console.firebase.google.com/ tạo dự án.
+        // 2. Tạo Project Settings > Web App để lấy Config API.
+        // 3. Tạo Firestore Database và chọn Rules Test Mode (Cho phép Đọc/Ghi).
+        // 4. Thay dòng chữ "YOUR_..." bên dưới bằng Key thật của bạn.
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
+        let db = null;
+        try {
+            if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+            }
+        } catch(e) { console.log(e); }
+
+
+        // ==========================================
+        // CẤU HÌNH WEB AUDIO API
+        // ==========================================
+        let audioCtx;
+        function playSound(type) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            const now = audioCtx.currentTime;
+            
+            if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'correct') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                osc.frequency.setValueAtTime(1200, now + 0.15);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            }
+        }
+
+        // Bắt sự kiện click chung để chơi âm thanh nút
+        document.addEventListener('click', (e) => {
+            if (e.target.tagName.toLowerCase() === 'button' || e.target.classList.contains('avatar')) {
+                playSound('click');
+            }
+        });
+
+
+        // ==========================================
+        // CẤU HÌNH GAME & DỮ LIỆU LOCALSTORAGE
+        // ==========================================
         const THEME_COLORS = ['#FF9800', '#4CAF50', '#03A9F4', '#E91E63']; 
         const LABELS = ['A', 'B', 'C', 'D'];
         
         let state = {
             name: '',
             avatar: '🐱',
+            difficulty: 'medium',
             score: 0,
             correct: 0,
             qIndex: 0,
@@ -295,12 +431,28 @@
             isAnswering: false
         };
 
-        // Gắn sự kiện chọn avatar
+        // Lấy LocalStorage
+        let lsData = JSON.parse(localStorage.getItem('toan2_data')) || { stars: 0, highScore: 0 };
+        function updateAchievementsUI() {
+            document.getElementById('player-achievements').innerHTML = `⭐ Kho Sao: ${lsData.stars} &nbsp;|&nbsp; 🏆 Kỷ Lục: ${lsData.highScore}`;
+        }
+        updateAchievementsUI();
+
+        // UI: Chọn Avatar
         document.querySelectorAll('.avatar').forEach(el => {
             el.addEventListener('click', function() {
                 document.querySelectorAll('.avatar').forEach(a => a.classList.remove('selected'));
                 this.classList.add('selected');
                 state.avatar = this.innerText;
+            });
+        });
+
+        // UI: Chọn Độ Khó
+        document.querySelectorAll('.diff-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+                state.difficulty = this.getAttribute('data-diff');
             });
         });
 
@@ -318,7 +470,7 @@
                 box.style.backgroundColor = 'var(--secondary)';
                 box.style.color = '#fff';
             } else if (type === 'error') {
-                box.style.backgroundColor = '#FF9800'; // Dùng màu cam cho nhẹ nhàng thay vì đỏ
+                box.style.backgroundColor = '#FF9800'; 
                 box.style.color = '#fff';
             } else {
                 box.style.backgroundColor = 'var(--danger)';
@@ -329,9 +481,12 @@
         }
 
         function startGame() {
+            // Mở context audio
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
             const nameInput = document.getElementById('player-name').value;
             state.name = nameInput.trim() || 'Bé Ngoan';
-            document.getElementById('display-name').innerText = state.name.substring(0, 10); // Giới hạn độ dài tên
+            document.getElementById('display-name').innerText = state.name.substring(0, 10);
             document.getElementById('player-info').innerHTML = `${state.avatar} ${state.name}`;
             
             state.score = 0;
@@ -344,51 +499,55 @@
             nextQuestion();
         }
 
-        // Tạo số ngẫu nhiên từ min đến max (bao gồm cả max)
         function rand(min, max) {
             return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
         function generateQuestion() {
-            const types = ['add', 'sub', 'mul', 'div', 'compare'];
-            const type = types[Math.floor(Math.random() * types.length)];
+            let types = ['add', 'sub', 'mul', 'div', 'compare'];
+            if (state.difficulty === 'easy') {
+                types = ['add', 'sub', 'compare'];
+            }
+
+            const type = types[rand(0, types.length - 1)];
             let qText = '';
             let answer = '';
             let wrongOptions = [];
 
             if (type === 'add') {
-                const a = rand(1, 89);
-                const b = rand(1, 99 - a);
-                qText = `${a} + ${b} = ?`;
-                answer = a + b;
+                let a, b;
+                if (state.difficulty === 'easy') { a = rand(1, 9); b = rand(1, 10); } // Tới 20
+                else if (state.difficulty === 'medium') { a = rand(10, 89); b = rand(1, 99 - a); } // Tới 100
+                else { a = rand(100, 899); b = rand(50, 999 - a); } // Tới 1000
+                qText = `${a} + ${b} = ?`; answer = a + b;
             } else if (type === 'sub') {
-                const a = rand(20, 99);
-                const b = rand(1, a - 1);
-                qText = `${a} - ${b} = ?`;
-                answer = a - b;
+                let a, b;
+                if (state.difficulty === 'easy') { a = rand(5, 20); b = rand(1, a - 1); }
+                else if (state.difficulty === 'medium') { a = rand(20, 99); b = rand(1, a - 1); }
+                else { a = rand(100, 999); b = rand(10, a - 1); }
+                qText = `${a} - ${b} = ?`; answer = a - b;
             } else if (type === 'mul') {
-                const a = rand(2, 9);
-                const b = rand(2, 9);
-                qText = `${a} × ${b} = ?`;
-                answer = a * b;
+                let a = rand(2, 9), b = rand(2, 9);
+                if (state.difficulty === 'hard') { a = rand(4, 15); b = rand(4, 9); } // Nhân 2 chữ số nhẹ
+                qText = `${a} × ${b} = ?`; answer = a * b;
             } else if (type === 'div') {
-                const b = rand(2, 9);
-                const ans = rand(2, 9);
-                const a = b * ans;
-                qText = `${a} ÷ ${b} = ?`;
-                answer = ans;
+                let b = rand(2, 9), ans = rand(2, 9);
+                if (state.difficulty === 'hard') { b = rand(3, 9); ans = rand(5, 15); }
+                qText = `${b * ans} ÷ ${b} = ?`; answer = ans;
             } else if (type === 'compare') {
-                const a = rand(10, 99);
-                const b = rand(10, 99);
+                let a, b;
+                if (state.difficulty === 'easy') { a = rand(1, 20); b = rand(1, 20); }
+                else if (state.difficulty === 'medium') { a = rand(10, 99); b = rand(10, 99); }
+                else { a = rand(100, 999); b = rand(100, 999); }
                 qText = `${a} ... ${b}`;
                 answer = a > b ? '>' : (a < b ? '<' : '=');
                 wrongOptions = ['>', '<', '='].filter(x => x !== answer);
             }
 
-            // Tạo các đáp án sai cho dạng tính toán
+            // Tạo các đáp án sai
             if (type !== 'compare') {
                 while(wrongOptions.length < 3) {
-                    let offset = rand(-10, 10);
+                    let offset = rand(-15, 15);
                     if(offset === 0) offset = 2;
                     let w = answer + offset;
                     if (w < 0) w = Math.abs(w) + 1;
@@ -399,11 +558,9 @@
             }
 
             let allOptions = [answer, ...wrongOptions];
-            
-            // Xáo trộn đáp án
             if (type === 'compare') {
                 allOptions = ['>', '<', '=']; 
-                allOptions.push('?'); // Thêm 1 đáp án nhiễu cho đủ 4 nút
+                allOptions.push('?');
             } else {
                 allOptions.sort(() => Math.random() - 0.5);
             }
@@ -430,7 +587,6 @@
             q.options.forEach((opt, i) => {
                 const btn = document.createElement('button');
                 btn.className = 'option';
-                // Đổi màu xen kẽ cho sinh động
                 btn.style.backgroundColor = THEME_COLORS[i % THEME_COLORS.length];
                 btn.style.boxShadow = `0 6px 0 rgb(0,0,0,0.2)`;
                 
@@ -449,9 +605,7 @@
             fill.style.transition = 'none';
             fill.style.width = '100%';
             
-            // Ép reflow để reset animation
             void fill.offsetWidth; 
-            
             fill.style.transition = 'width 30s linear';
             fill.style.width = '0%';
 
@@ -461,6 +615,7 @@
                     clearInterval(state.timer);
                     if (!state.isAnswering) {
                         state.isAnswering = true;
+                        playSound('wrong');
                         showPopup("Hết thời gian! ⏰", "timeout");
                         state.streak = 0;
                         disableButtons();
@@ -481,13 +636,22 @@
             disableButtons();
 
             if (selected === state.currentAnswer) {
-                state.score += 10;
+                // Thưởng điểm cao hơn cho độ khó cao
+                let pts = 10;
+                if (state.difficulty === 'hard') pts = 20;
+                else if (state.difficulty === 'easy') pts = 5;
+
+                state.score += pts;
                 state.correct++;
                 state.streak++;
+                
+                // Track stars (Local)
+                lsData.stars += 1;
+                
                 document.getElementById('score').innerText = state.score;
                 
-                // Hiệu ứng đúng
                 btnElement.style.transform = 'scale(1.1)';
+                playSound('correct');
                 createConfetti();
                 
                 if (state.streak >= 3) {
@@ -497,8 +661,8 @@
                 }
             } else {
                 state.streak = 0;
-                // Hiệu ứng sai
                 btnElement.style.opacity = '0.5';
+                playSound('wrong');
                 showPopup("Gần đúng rồi, thử lại nhé! 💙", "error");
             }
             
@@ -513,8 +677,7 @@
                 confetti.style.left = Math.random() * 100 + 'vw';
                 confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
                 
-                // Randomize size and duration
-                const size = Math.random() * 8 + 8; // 8px - 16px
+                const size = Math.random() * 8 + 8; 
                 confetti.style.width = size + 'px';
                 confetti.style.height = size + 'px';
                 confetti.style.animationDuration = Math.random() * 2 + 1.5 + 's';
@@ -527,6 +690,24 @@
         function endGame() {
             clearInterval(state.timer);
             showScreen('result-screen');
+            
+            // Xử lý LocalStorage
+            if (state.score > lsData.highScore) {
+                lsData.highScore = state.score;
+            }
+            localStorage.setItem('toan2_data', JSON.stringify(lsData));
+            updateAchievementsUI(); // Cập nhật ngoài sảnh
+
+            // Gửi Lên Firebase
+            if (db && state.score > 0) {
+                db.collection("leaderboard").add({
+                    name: state.name,
+                    avatar: state.avatar,
+                    score: state.score,
+                    date: new Date().toISOString()
+                }).catch(e => console.log("Firebase ghi lỗi: Yêu cầu cập nhật Config", e));
+            }
+
             document.getElementById('final-score').innerText = state.score;
             document.getElementById('correct-count').innerText = state.correct;
             
@@ -555,6 +736,46 @@
 
         function goHome() {
             showScreen('start-screen');
+        }
+
+        // ==========================================
+        // BẢNG XẾP HẠNG (LEADERBOARD)
+        // ==========================================
+        function showLeaderboard() {
+            showScreen('leaderboard-screen');
+            const listObj = document.getElementById('leaderboard-list');
+            
+            if (!db) {
+                listObj.innerHTML = `<p style="color:var(--danger)">Chưa cấu hình Firebase API Key. Tham khảo mã nguồn để điền Key.</p>`;
+                return;
+            }
+
+            listObj.innerHTML = `<p>Đang tải dữ liệu...</p>`;
+            
+            db.collection("leaderboard").orderBy("score", "desc").limit(10).get()
+            .then((querySnapshot) => {
+                listObj.innerHTML = '';
+                if(querySnapshot.empty) {
+                    listObj.innerHTML = `<p>Chưa có ai trong bảng xếp hạng. Hãy là người đầu tiên!</p>`;
+                    return;
+                }
+                
+                let rank = 1;
+                querySnapshot.forEach((doc) => {
+                    const d = doc.data();
+                    const rankMedal = rank === 1 ? '🥇' : (rank === 2 ? '🥈' : (rank === 3 ? '🥉' : rank));
+                    listObj.innerHTML += `
+                        <div class="score-item">
+                            <span><b>${rankMedal}</b> ${d.avatar} ${d.name}</span>
+                            <span style="color:var(--primary); font-weight:bold;">${d.score} ⭐</span>
+                        </div>
+                    `;
+                    rank++;
+                });
+            })
+            .catch(error => {
+                listObj.innerHTML = `<p style="color:var(--danger)">Lỗi tải dữ liệu. Hãy kiểm tra quy tắc Firestore hoặc liên hệ quản trị viên.</p>`;
+            });
         }
     </script>
 </body>
