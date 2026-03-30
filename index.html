@@ -43,7 +43,7 @@
             color: var(--accent); 
             font-size: 2.8rem; 
             text-shadow: 2px 2px #fff; 
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
         input { 
             font-size: 1.5rem; 
@@ -62,9 +62,13 @@
         .avatars { 
             display: flex; 
             gap: 15px; 
-            margin: 15px 0; 
+            margin: 15px 0 25px 0; 
             justify-content: center; 
             flex-wrap: wrap; 
+        }
+        .avatar-wrapper {
+            position: relative;
+            display: inline-block;
         }
         .avatar { 
             font-size: 3.5rem; 
@@ -74,6 +78,7 @@
             padding: 5px; 
             transition: 0.2s; 
             background: rgba(255,255,255,0.5);
+            display: inline-block;
         }
         .avatar.selected { 
             border-color: var(--primary); 
@@ -81,6 +86,27 @@
             transform: scale(1.15); 
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
+        .avatar.locked {
+            filter: grayscale(100%) opacity(0.6);
+            border-style: dashed;
+            cursor: pointer;
+        }
+        .cost-badge {
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--primary);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
         button { 
             font-size: 1.6rem; 
             padding: 15px 35px; 
@@ -253,7 +279,7 @@
         }
         .score-item:last-child { border-bottom: none; }
         .badge {
-            background: #FFF9C4; color: #F57F17; border-radius: 10px; padding: 5px 10px; display: inline-block; font-size: 1.2rem; margin-bottom: 10px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background: #FFF9C4; color: #F57F17; border-radius: 10px; padding: 5px 10px; display: inline-block; font-size: 1.2rem; margin-bottom: 5px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
     </style>
 </head>
@@ -269,19 +295,15 @@
         <h1>Toán Vui Lớp 2 🎈</h1>
         
         <div class="badge" id="player-achievements">
-            ⭐ Kho Sao: 0 &nbsp;|&nbsp; 🏆 Kỷ Lục: 0
+            <!-- Xử lý bằng JS -->
         </div>
 
         <input type="text" id="player-name" placeholder="Tên của bé là gì?" autocomplete="off" />
         
-        <h3 style="color: var(--secondary); margin-bottom: 5px;">Chọn bạn đồng hành:</h3>
+        <h3 style="color: var(--secondary); margin-bottom: 5px;">Chọn bạn đồng hành (<span id="stars-display" style="color: var(--primary)">0⭐</span>):</h3>
+        
         <div class="avatars" id="avatar-container">
-            <span class="avatar selected">🐱</span>
-            <span class="avatar">🐶</span>
-            <span class="avatar">🐻</span>
-            <span class="avatar">🐰</span>
-            <span class="avatar">🐼</span>
-            <span class="avatar">🦖</span>
+            <!-- Nơi sinh Danh sách Nhân vật Tự Động -->
         </div>
 
         <h3 style="color: var(--accent); margin-bottom: 5px;">Chọn Độ Khó:</h3>
@@ -291,7 +313,7 @@
             <button class="diff-btn" data-diff="hard">Khó (Đến 1000)</button>
         </div>
         
-        <button onclick="startGame()" style="margin-top: 10px;">Bắt Đầu Học 🚀</button>
+        <button onclick="startGame()" style="margin-top: 5px;">Bắt Đầu Học 🚀</button>
         <button onclick="showLeaderboard()" style="margin-top: 15px; background: #03A9F4; box-shadow: 0 6px 0 #0288D1; font-size: 1.2rem; padding: 10px 20px;">Xếp Hạng 🥇</button>
     </div>
 
@@ -340,11 +362,6 @@
     <script>
         // ==========================================
         // CẤU HÌNH BẢNG XẾP HẠNG FIREBASE
-        // Hướng dẫn: 
-        // 1. Vào trang https://console.firebase.google.com/ tạo dự án.
-        // 2. Tạo Project Settings > Web App để lấy Config API.
-        // 3. Tạo Firestore Database và chọn Rules Test Mode (Cho phép Đọc/Ghi).
-        // 4. Thay dòng chữ "YOUR_..." bên dưới bằng Key thật của bạn.
         // ==========================================
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
@@ -400,13 +417,20 @@
                 gain.gain.setValueAtTime(0.3, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
                 osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'buy') {
+                osc.type = 'square'; // cha-ching effect
+                osc.frequency.setValueAtTime(1046.50, now); // C6
+                osc.frequency.setValueAtTime(1567.98, now + 0.1); // G6
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.start(now); osc.stop(now + 0.4);
             } else if (type === 'win_perfect') {
                 osc.type = 'square';
-                osc.frequency.setValueAtTime(523.25, now); // C5
-                osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
-                osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
-                osc.frequency.setValueAtTime(1046.50, now + 0.3); // C6
-                osc.frequency.setValueAtTime(1318.51, now + 0.4); // E6
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.1);
+                osc.frequency.setValueAtTime(783.99, now + 0.2);
+                osc.frequency.setValueAtTime(1046.50, now + 0.3);
+                osc.frequency.setValueAtTime(1318.51, now + 0.4);
                 gain.gain.setValueAtTime(0.15, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
                 osc.start(now); osc.stop(now + 0.8);
@@ -435,19 +459,18 @@
             }
         }
 
-        // Bắt sự kiện click chung để chơi âm thanh nút
-        document.addEventListener('click', (e) => {
-            if (e.target.tagName.toLowerCase() === 'button' || e.target.classList.contains('avatar')) {
-                playSound('click');
-            }
-        });
-
 
         // ==========================================
         // CẤU HÌNH GAME & DỮ LIỆU LOCALSTORAGE
         // ==========================================
         const THEME_COLORS = ['#FF9800', '#4CAF50', '#03A9F4', '#E91E63']; 
         const LABELS = ['A', 'B', 'C', 'D'];
+        const AVATARS = ['🐱', '🐶', '🐻', '🐰', '🐼', '🦖'];
+        const AVATAR_COST = {
+            '🐱': 0, '🐶': 0, 
+            '🐻': 150, '🐰': 300, 
+            '🐼': 600, '🦖': 1000
+        };
         
         let state = {
             name: '',
@@ -463,25 +486,102 @@
             isAnswering: false
         };
 
-        // Lấy LocalStorage
-        let lsData = JSON.parse(localStorage.getItem('toan2_data')) || { stars: 0, highScore: 0 };
-        function updateAchievementsUI() {
-            document.getElementById('player-achievements').innerHTML = `⭐ Kho Sao: ${lsData.stars} &nbsp;|&nbsp; 🏆 Kỷ Lục: ${lsData.highScore}`;
-        }
-        updateAchievementsUI();
+        // Lấy và Cập nhật LocalStorage với cấu trúc Mới
+        let lsData = JSON.parse(localStorage.getItem('toan2_data')) || {};
+        if (lsData.stars === undefined) lsData.stars = 0;
+        if (lsData.highScore === undefined) lsData.highScore = 0;
+        if (lsData.unlocked === undefined) lsData.unlocked = ['🐱', '🐶']; // Default 2 con
+        if (lsData.lastDate === undefined) lsData.lastDate = '';
+        if (lsData.streakDays === undefined) lsData.streakDays = 0;
 
-        // UI: Chọn Avatar
-        document.querySelectorAll('.avatar').forEach(el => {
-            el.addEventListener('click', function() {
-                document.querySelectorAll('.avatar').forEach(a => a.classList.remove('selected'));
-                this.classList.add('selected');
-                state.avatar = this.innerText;
+        function checkDailyStreak() {
+            const today = new Date().toISOString().split('T')[0];
+            if (lsData.lastDate === today) return; 
+            
+            if (lsData.lastDate) {
+                const last = new Date(lsData.lastDate);
+                const current = new Date(today);
+                const diffTime = Math.abs(current - last);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays === 1) {
+                    lsData.streakDays += 1;
+                    lsData.stars += 30; // Thưởng điểm danh duy trì
+                    setTimeout(() => showPopup(`🔥 Chuỗi ${lsData.streakDays} ngày! Thưởng +30 Sao!`, 'success'), 500);
+                } else if (diffDays > 1) {
+                    lsData.streakDays = 1; 
+                    lsData.stars += 10;
+                    setTimeout(() => showPopup(`🧊 Lửa tắt rồi! Bắt đầu lại chuỗi 1 ngày. Thưởng +10 Sao.`, 'success'), 500);
+                }
+            } else {
+                lsData.streakDays = 1;
+                lsData.stars += 10;
+                setTimeout(() => showPopup(`👋 Chào mừng bé mới tới! Tặng +10 Sao!`, 'success'), 500);
+            }
+            lsData.lastDate = today;
+            localStorage.setItem('toan2_data', JSON.stringify(lsData));
+            updateAchievementsUI();
+        }
+
+        window.onload = checkDailyStreak;
+
+        function updateAchievementsUI() {
+            let fireFormat = lsData.streakDays > 0 ? `🔥 Chuỗi: ${lsData.streakDays} &nbsp;|&nbsp; ` : `🧊 Chuỗi: 0 &nbsp;|&nbsp; `;
+            document.getElementById('player-achievements').innerHTML = `${fireFormat} ⭐ Kho Sao: ${lsData.stars} &nbsp;|&nbsp; 🏆 Kỷ Lục: ${lsData.highScore}`;
+            document.getElementById('stars-display').innerText = `${lsData.stars}⭐`;
+            renderAvatars();
+        }
+
+        function renderAvatars() {
+            const container = document.getElementById('avatar-container');
+            container.innerHTML = '';
+            
+            AVATARS.forEach(char => {
+                const div = document.createElement('div');
+                div.className = 'avatar-wrapper';
+                const isUnlocked = lsData.unlocked.includes(char);
+                const isSelected = state.avatar === char;
+                
+                let html = `<span class="avatar ${isSelected ? 'selected' : ''} ${!isUnlocked ? 'locked' : ''}">${char}</span>`;
+                if (!isUnlocked) {
+                    html += `<div class="cost-badge">⭐ ${AVATAR_COST[char]}</div>`;
+                }
+                div.innerHTML = html;
+                
+                div.onclick = () => {
+                    playSound('click');
+                    if (isUnlocked) {
+                        state.avatar = char;
+                        renderAvatars();
+                    } else {
+                        const cost = AVATAR_COST[char];
+                        if (lsData.stars >= cost) {
+                            if (confirm(`Khóa màn: Bé có muốn dùng ${cost} ⭐ để mở khóa bạn ${char} vĩnh viễn không?`)) {
+                                lsData.stars -= cost;
+                                lsData.unlocked.push(char);
+                                state.avatar = char;
+                                localStorage.setItem('toan2_data', JSON.stringify(lsData));
+                                playSound('buy');
+                                createConfetti();
+                                updateAchievementsUI();
+                                showPopup(`Đẳng cấp! Đã mở khóa ${char} 🎉`, 'success');
+                            }
+                        } else {
+                            showPopup(`Bé còn thiếu ${cost - lsData.stars} ⭐ nữa!`, 'error');
+                            playSound('wrong');
+                        }
+                    }
+                };
+                container.appendChild(div);
             });
-        });
+        }
+
+        updateAchievementsUI();
 
         // UI: Chọn Độ Khó
         document.querySelectorAll('.diff-btn').forEach(btn => {
             btn.addEventListener('click', function() {
+                playSound('click');
                 document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
                 this.classList.add('selected');
                 state.difficulty = this.getAttribute('data-diff');
@@ -515,10 +615,11 @@
         function startGame() {
             // Mở context audio
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            
+            playSound('click'); // For initial iOS activation
+
             const nameInput = document.getElementById('player-name').value;
             state.name = nameInput.trim() || 'Bé Ngoan';
-            document.getElementById('player-info').innerHTML = `${state.avatar} ${state.name.substring(0, 12)}`;
+            document.getElementById('player-info').innerHTML = `${state.avatar} Bé ${state.name.substring(0, 12)}`;
             
             state.score = 0;
             state.correct = 0;
@@ -559,7 +660,7 @@
                 qText = `${a} - ${b} = ?`; answer = a - b;
             } else if (type === 'mul') {
                 let a = rand(2, 9), b = rand(2, 9);
-                if (state.difficulty === 'hard') { a = rand(4, 15); b = rand(4, 9); } // Nhân 2 chữ số nhẹ
+                if (state.difficulty === 'hard') { a = rand(4, 15); b = rand(4, 9); } 
                 qText = `${a} × ${b} = ?`; answer = a * b;
             } else if (type === 'div') {
                 let b = rand(2, 9), ans = rand(2, 9);
@@ -575,7 +676,6 @@
                 wrongOptions = ['>', '<', '='].filter(x => x !== answer);
             }
 
-            // Tạo các đáp án sai
             if (type !== 'compare') {
                 while(wrongOptions.length < 3) {
                     let offset = rand(-15, 15);
@@ -677,7 +777,7 @@
                 state.streak++;
                 
                 // Track stars (Local)
-                lsData.stars += 1;
+                lsData.stars += Math.floor(pts / 2); // Mỗi 10 điểm -> 5 Sao
                 
                 document.getElementById('score').innerText = state.score;
                 
@@ -727,7 +827,7 @@
                 lsData.highScore = state.score;
             }
             localStorage.setItem('toan2_data', JSON.stringify(lsData));
-            updateAchievementsUI(); // Cập nhật ngoài sảnh
+            updateAchievementsUI(); 
 
             // Gửi Lên Firebase
             if (db && state.score > 0) {
@@ -762,6 +862,7 @@
         }
 
         function resetGame() {
+            playSound('click');
             state.score = 0;
             state.correct = 0;
             state.qIndex = 0;
@@ -770,13 +871,16 @@
         }
 
         function goHome() {
+            playSound('click');
             showScreen('start-screen');
+            updateAchievementsUI();
         }
 
         // ==========================================
         // BẢNG XẾP HẠNG (LEADERBOARD)
         // ==========================================
         function showLeaderboard() {
+            playSound('click');
             showScreen('leaderboard-screen');
             const listObj = document.getElementById('leaderboard-list');
             
