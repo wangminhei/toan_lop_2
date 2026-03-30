@@ -305,6 +305,18 @@
         .bgm-btn:active {
             transform: scale(0.9);
         }
+
+        /* Bảng Cửu Chương */
+        .table-nav { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+        .tbl-btn { background: white; color: var(--accent); font-weight: bold; border: 3px solid #ddd; border-radius: 12px; font-size: 1.5rem; padding: 10px 15px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 0 #ddd;}
+        .tbl-btn.selected { background: var(--accent); color: white; border-color: var(--accent); box-shadow: 0 4px 0 #7B1FA2; transform: translateY(2px); }
+        .math-list { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 400px; margin: 0 auto; }
+        .math-row { background: white; border-radius: 15px; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 2.2rem; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+        .math-eq { color: var(--text); font-weight: bold; width: 60%; text-align: right; padding-right: 20px;}
+        .math-ans { color: var(--primary); font-weight: bold; text-align: center; width: 35%; font-size: 2.5rem; transition: 0.3s; }
+        .math-ans.hidden { background: #E0E0E0; color: transparent; border-radius: 10px; cursor: pointer; position: relative; border: 2px dashed #9E9E9E;}
+        .math-ans.hidden::after { content: '?'; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: #757575; font-size: 2rem; font-weight: bold;}
+        .math-ans.revealed { color: var(--accent); transform: scale(1.15); }
     </style>
 </head>
 <body>
@@ -343,8 +355,25 @@
             <button class="diff-btn" data-diff="hard">Khó (Đến 1000)</button>
         </div>
         
-        <button onclick="startGame()" style="margin-top: 5px;">Bắt Đầu Học 🚀</button>
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 15px;">
+            <button onclick="startGame()">Bắt Đầu Học 🚀</button>
+            <button onclick="showMultiplicationTable()" style="background: #8BC34A; box-shadow: 0 6px 0 #558B2F;">Bảng Nhân ✖️</button>
+        </div>
+        
         <button onclick="showLeaderboard()" style="margin-top: 15px; background: #03A9F4; box-shadow: 0 6px 0 #0288D1; font-size: 1.2rem; padding: 10px 20px;">Xếp Hạng 🥇</button>
+    </div>
+
+    <!-- Màn Hình Bảng Cửu Chương Lật Thẻ -->
+    <div id="cuu-chuong-screen" class="screen">
+        <h1 style="font-size: 2.5rem;">Cửu Chương Ma Thuật ✨</h1>
+        
+        <div class="table-nav" id="table-nav"></div>
+
+        <button id="toggle-hide-btn" onclick="toggleHideAnswers()" style="margin-bottom: 20px; font-size: 1.4rem; padding: 10px 20px; background: var(--secondary); box-shadow: 0 4px 0 #2E7D32;">Che Đáp Án 🙈</button>
+
+        <div class="math-list" id="math-list-container"></div>
+
+        <button onclick="goHome()" style="margin-top: 25px; background: var(--accent); box-shadow: 0 6px 0 #7B1FA2; font-size: 1.3rem; padding: 12px 30px;">🏠 Trở Về Lớp</button>
     </div>
 
     <!-- Màn Hình Chơi -->
@@ -455,6 +484,13 @@
                 gain.gain.setValueAtTime(0.2, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
                 osc.start(now); osc.stop(now + 0.4);
+            } else if (type === 'reveal') {
+                osc.type = 'sine'; // pop effect
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
             } else if (type === 'win_perfect') {
                 osc.type = 'square';
                 osc.frequency.setValueAtTime(523.25, now);
@@ -518,12 +554,13 @@
                 bgMusicStarted = true;
             }
 
-            if (e.target.tagName.toLowerCase() === 'button' || e.target.classList.contains('avatar')) {
+            if (e.target.tagName.toLowerCase() === 'button' || e.target.classList.contains('avatar') || e.target.classList.contains('math-ans')) {
                 if(e.target.id !== 'bgm-btn') {
-                     playSound('click');
+                     playSound('click'); // Play sound cho mọi nút trừ nút bgm đã setup
                 }
             }
         });
+
 
         // ==========================================
         // CẤU HÌNH GAME & DỮ LIỆU LOCALSTORAGE
@@ -883,6 +920,26 @@
             }
         }
 
+        function createSmallConfetti(element) {
+            const colors = ['#FF4081', '#E040FB', '#7C4DFF', '#536DFE', '#69F0AE', '#FFFF00', '#FFAB40'];
+            const rect = element.getBoundingClientRect();
+            for (let i = 0; i < 5; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                confetti.style.left = (rect.left + rect.width / 2 + (Math.random()*40 - 20)) + 'px';
+                confetti.style.top = (rect.top + rect.height / 2) + 'px';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                const size = Math.random() * 6 + 6; 
+                confetti.style.width = size + 'px';
+                confetti.style.height = size + 'px';
+                confetti.style.animationDuration = Math.random() * 0.8 + 0.5 + 's';
+                
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 1500);
+            }
+        }
+
         function endGame() {
             clearInterval(state.timer);
             showScreen('result-screen');
@@ -981,6 +1038,94 @@
                 listObj.innerHTML = `<p style="color:var(--danger)">Lỗi tải dữ liệu. Hãy kiểm tra quy tắc Firestore hoặc liên hệ quản trị viên.</p>`;
             });
         }
+
+        // ==========================================
+        // BẢNG CỬU CHƯƠNG (ACTIVE RECALL)
+        // ==========================================
+        let currentTableNum = 2;
+        let isAnswersHidden = false;
+
+        function showMultiplicationTable() {
+            playSound('click');
+            showScreen('cuu-chuong-screen');
+            if (document.getElementById('table-nav').innerHTML === '') {
+                renderTableNav();
+                renderMathTable();
+            }
+        }
+
+        function renderTableNav() {
+            const nav = document.getElementById('table-nav');
+            nav.innerHTML = '';
+            for(let i=2; i<=9; i++) {
+                const btn = document.createElement('button');
+                btn.className = `tbl-btn ${i === currentTableNum ? 'selected' : ''}`;
+                btn.innerText = i;
+                btn.onclick = () => {
+                    playSound('click');
+                    currentTableNum = i;
+                    renderTableNav();
+                    renderMathTable();
+                };
+                nav.appendChild(btn);
+            }
+        }
+
+        function renderMathTable() {
+            const container = document.getElementById('math-list-container');
+            container.innerHTML = '';
+            for(let i=1; i<=10; i++) {
+                const div = document.createElement('div');
+                div.className = 'math-row';
+                
+                const ansContainer = document.createElement('div');
+                ansContainer.className = isAnswersHidden ? 'math-ans hidden' : 'math-ans';
+                ansContainer.innerText = isAnswersHidden ? '?' : (currentTableNum * i);
+                
+                ansContainer.onclick = (e) => {
+                    // Chặn tiếng click tổng quát (vì event target sẽ rơi xuống class math-ans, và click chung sẽ không gọi playSoundClick nếu e.stopPropagation)
+                    // Hoặc 그냥 để nó gọi playSoundClick bằng cách không chặn.
+                    if (ansContainer.classList.contains('hidden')) {
+                        playSound('reveal'); // Âm thanh pop ting ting
+                        ansContainer.classList.remove('hidden');
+                        ansContainer.classList.add('revealed');
+                        ansContainer.innerText = currentTableNum * i;
+                        createSmallConfetti(ansContainer);
+                        
+                        // Nếu lật full 10 thẻ -> Auto tự đóng chức năng che mắt và thưởng nhẹ tiếng vỗ tay
+                        const totalHidden = document.querySelectorAll('.math-ans.hidden').length;
+                        if (totalHidden === 0) {
+                            setTimeout(() => {
+                                if (isAnswersHidden) toggleHideAnswers(); // Turn off visually
+                                playSound('win_ok'); // Tiếng chúc mừng mini
+                                showPopup('Bé thuộc bài giỏi quá! 👏', 'success');
+                            }, 500);
+                        }
+                    }
+                };
+                
+                div.innerHTML = `<div class="math-eq">${currentTableNum} × ${i} = </div>`;
+                div.appendChild(ansContainer);
+                container.appendChild(div);
+            }
+        }
+
+        function toggleHideAnswers() {
+            playSound('click');
+            isAnswersHidden = !isAnswersHidden;
+            const btn = document.getElementById('toggle-hide-btn');
+            if(isAnswersHidden) {
+                btn.innerText = '👀 Mở Đáp Án';
+                btn.style.backgroundColor = '#FF9800';
+                btn.style.boxShadow = '0 4px 0 #E65100';
+            } else {
+                btn.innerText = '🙈 Che Đáp Án';
+                btn.style.backgroundColor = 'var(--secondary)';
+                btn.style.boxShadow = '0 4px 0 #2E7D32';
+            }
+            renderMathTable();
+        }
+
     </script>
 </body>
 </html>
